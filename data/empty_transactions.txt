@@ -1,0 +1,4 @@
+Account number	FI1234567890123456
+
+Entry date	Value date	Payment date	Amount	Beneficiary/Remitter	Account number	BIC	Transaction	Reference number	Originator's reference	Message	Card number	Receipt
+

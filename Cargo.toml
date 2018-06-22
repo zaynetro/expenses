@@ -1,0 +1,6 @@
+[package]
+name = "expenses"
+version = "0.1.0"
+authors = ["Roman Zaynetdinov <roman@zaynetro.com>"]
+
+[dependencies]

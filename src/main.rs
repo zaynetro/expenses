@@ -11,6 +11,8 @@ mod style;
 use account::{Account, Transaction};
 use style::{bold, underline};
 
+const TOP_EXPENSES: usize = 10;
+
 fn main() -> io::Result<()> {
     let stdout = io::stdout();
     let mut handle = stdout.lock();
@@ -82,7 +84,7 @@ fn print_summary_account(out: &mut io::Write, account: &Account) -> io::Result<(
 }
 
 fn print_summary(out: &mut io::Write, income: f32, expenses: f32, profit: f32) -> io::Result<()> {
-    writeln!(out, "      Income:  {:+.2}", income)?;
+    writeln!(out, "      Income: {:+.2}", income)?;
     writeln!(out, "    Expenses: -{:.2}", expenses)?;
     writeln!(
         out,
@@ -106,42 +108,41 @@ fn print_months(out: &mut io::Write, account: &Account) -> io::Result<()> {
         writeln!(out)?;
         writeln!(out, "    {}", bold(format!("{}:", month)))?;
 
+        let mut month_transactions: Vec<&Transaction> = account
+            .transactions
+            .iter()
+            .filter(|t| t.month == ***month)
+            .collect();
+
+        month_transactions.sort();
+
+        // Print income transactions
+        let mut income = 0.0;
+        for t in month_transactions.iter().filter(|t| t.amount > 0.0).rev() {
+            t.print(out)?;
+            income += t.amount;
+        }
+
+        // There was income if there were some transactions
+        if income > 0.0 {
+            writeln!(out)?;
+        }
+
+        // Print expenses
+        let mut expenses = 0.0;
+        for (i, t) in month_transactions
+            .iter()
+            .filter(|t| t.amount < 0.0)
+            .enumerate()
         {
-            // Print income transactions
-            let mut income: Vec<&Transaction> = account
-                .transactions
-                .iter()
-                .filter(|t| t.amount > 0.0 && t.month == ***month)
-                .collect();
-
-            income.sort();
-
-            for t in income.iter().rev() {
+            if i < TOP_EXPENSES {
+                // Print only first X
                 t.print(out)?;
             }
 
-            if income.len() > 0 {
-                writeln!(out)?;
-            }
+            expenses += t.amount.abs();
         }
 
-        {
-            // Print expenses
-            let mut expenses: Vec<&Transaction> = account
-                .transactions
-                .iter()
-                .filter(|t| t.amount < 0.0 && t.month == ***month)
-                .collect();
-
-            expenses.sort();
-
-            for t in expenses.iter().take(10) {
-                t.print(out)?;
-            }
-        }
-
-        let income = account.sum(|t| t.month == ***month && t.amount > 0.0);
-        let expenses = account.sum(|t| t.month == ***month && t.amount < 0.0).abs();
         let profit = income - expenses;
 
         writeln!(out)?;
@@ -175,7 +176,7 @@ mod tests {
             "",
             "<u>Summary:</u>",
             "",
-            "      Income:  +0.00",
+            "      Income: +0.00",
             "    Expenses: -0.00",
             "      <u>Profit: +0.00</u>",
             "",
@@ -216,7 +217,7 @@ mod tests {
             "",
             "<u>Summary:</u>",
             "",
-            "      Income:  +200.00",
+            "      Income: +200.00",
             "    Expenses: -21.26",
             "      <u>Profit: +178.74</u>",
             "",
@@ -232,7 +233,7 @@ mod tests {
             "        02.05.2018: -2.60 (Iso Tiger Oy - Card purchase HELSINKI)",
             "        12.05.2018: -2.60 (Iso Tiger Oy - Card purchase HELSINKI)",
             "",
-            "      Income:  +200.00",
+            "      Income: +200.00",
             "    Expenses: -21.26",
             "      <u>Profit: +178.74</u>",
             "",

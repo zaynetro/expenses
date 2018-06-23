@@ -38,7 +38,7 @@ Transactions: 6
 
 Summary:
 
-      Income:  +200.00
+      Income: +200.00
     Expenses: -21.26
       Profit: +178.74
 
@@ -54,7 +54,7 @@ Months:
         02.05.2018: -2.60 (Iso Tiger Oy - Card purchase HELSINKI)
         12.05.2018: -2.60 (Iso Tiger Oy - Card purchase HELSINKI)
 
-      Income:  +200.00
+      Income: +200.00
     Expenses: -21.26
       Profit: +178.74
 

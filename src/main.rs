@@ -97,7 +97,7 @@ fn print_months(out: &mut io::Write, account: &Account) -> io::Result<()> {
     writeln!(out, "{}", underline("Months:"))?;
 
     let mut months = HashSet::new();
-    for t in account.transactions.iter() {
+    for t in &account.transactions {
         months.insert(&t.month);
     }
 

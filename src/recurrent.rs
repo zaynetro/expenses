@@ -53,13 +53,13 @@ pub fn print(out: &mut io::Write, account: &Account) -> io::Result<()> {
             t.beneficiary.clone()
         };
 
-        grouped.entry(key).or_insert(vec![]).push(t);
+        grouped.entry(key).or_insert_with(|| vec![]).push(t);
     }
 
     let mut recurrent = vec![];
     let mut max_key_len = 0;
 
-    for (key, transactions) in grouped.iter() {
+    for (key, transactions) in &grouped {
         if transactions.len() < 2 {
             continue;
         }
@@ -68,7 +68,7 @@ pub fn print(out: &mut io::Write, account: &Account) -> io::Result<()> {
         recurrent.push(RecurrentPayment {
             key: &key,
             total_spent,
-            transactions: transactions,
+            transactions,
         });
 
         let key_len = key.chars().count() + 2;

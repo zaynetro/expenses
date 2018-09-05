@@ -4,7 +4,7 @@ use std::io::{BufRead, BufReader};
 
 use account::{Account, Transaction};
 
-pub fn parse(out: &mut io::Write, file_path: String) -> io::Result<Account> {
+pub fn parse(out: &mut io::Write, file_path: &str) -> io::Result<Account> {
     writeln!(out, "Reading file {}", file_path)?;
 
     let f = File::open(file_path)?;

@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::io;
+use std::ops::AddAssign;
 
 #[derive(Debug)]
 pub struct Account {
@@ -85,3 +86,30 @@ impl PartialEq for Transaction {
 }
 
 impl Eq for Transaction {}
+
+pub struct Summary {
+    pub income: f32,
+    pub expenses: f32,
+}
+
+impl Summary {
+    pub fn profit(&self) -> f32 {
+        self.income - self.expenses
+    }
+}
+
+impl Default for Summary {
+    fn default() -> Self {
+        Summary {
+            income: 0.0,
+            expenses: 0.0,
+        }
+    }
+}
+
+impl AddAssign for Summary {
+    fn add_assign(&mut self, other: Self) {
+        self.income += other.income;
+        self.expenses += other.expenses;
+    }
+}

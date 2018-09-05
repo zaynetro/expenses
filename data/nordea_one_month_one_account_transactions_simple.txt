@@ -1,0 +1,10 @@
+Account number	FI1234567890123456
+
+Entry date	Value date	Payment date	Amount	Beneficiary/Remitter	Account number	BIC	Transaction	Reference number	Originator's reference	Message	Card number	Receipt
+
+02.05.2018	02.05.2018	02.05.2018	-2,60	Iso Tiger Oy			Card purchase	123456789012		HELSINKI 	1234567890123456		
+
+02.05.2018	02.05.2018	02.05.2018	-8,46	TWILIO			Card purchase	123456789013		USD          10,01 8778894546 KURSSI: 1,1832 	1234567890123457		
+
+24.05.2018	24.05.2018	24.05.2018	-300,00	James Bond	123456-765432	NDEAFIHH	Own transfer						
+

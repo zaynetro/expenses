@@ -8,7 +8,7 @@ mod parse;
 mod recurrent;
 mod style;
 
-use account::{Account, Transaction};
+use account::{Account, Summary, Transaction};
 use style::{bold, underline};
 
 const TOP_EXPENSES: usize = 10;
@@ -19,19 +19,36 @@ fn main() -> io::Result<()> {
 
     let mut args = env::args();
     let name = args.next().unwrap();
-    let file_path = match args.next() {
-        Some(file_path) => file_path,
-        None => {
-            writeln!(&mut handle, "Usage {} <file-path>", name)?;
-            return Ok(());
-        }
-    };
+    let file_paths: Vec<String> = args.collect();
 
-    expenses(&mut handle, file_path)
+    if file_paths.is_empty() {
+        writeln!(&mut handle, "Usage {} <file-path> [<file-path>]", name)?;
+        return Ok(());
+    }
+
+    expenses(&mut handle, file_paths)
 }
 
-fn expenses(out: &mut io::Write, file_path: String) -> io::Result<()> {
-    let account = parse::parse(out, file_path)?;
+fn expenses(out: &mut io::Write, file_paths: Vec<String>) -> io::Result<()> {
+    let mut total = Summary::default();
+
+    for file_path in &file_paths {
+        let summary = expenses_single(out, &file_path)?;
+        total += summary;
+    }
+
+    if file_paths.len() > 1 {
+        writeln!(out, "------------------------")?;
+        writeln!(out, "{}", underline("Summary across accounts:"))?;
+        print_summary(out, &total)?;
+        writeln!(out, "------------------------")?;
+    }
+
+    Ok(())
+}
+
+fn expenses_single(out: &mut io::Write, file_path: &str) -> io::Result<Summary> {
+    let account = parse::parse(out, &file_path)?;
 
     print_section_separator(out)?;
 
@@ -40,7 +57,7 @@ fn expenses(out: &mut io::Write, file_path: String) -> io::Result<()> {
     print_section_separator(out)?;
 
     // Account summary section
-    print_summary_account(out, &account)?;
+    let summary = print_summary_account(out, &account)?;
     print_section_separator(out)?;
 
     // Months section
@@ -50,7 +67,7 @@ fn expenses(out: &mut io::Write, file_path: String) -> io::Result<()> {
     // Recurrent transations section
     recurrent::print(out, &account)?;
 
-    Ok(())
+    Ok(summary)
 }
 
 fn print_section_separator(out: &mut io::Write) -> io::Result<()> {
@@ -72,24 +89,25 @@ fn print_account_details(out: &mut io::Write, account: &Account) -> io::Result<(
     }
 }
 
-fn print_summary_account(out: &mut io::Write, account: &Account) -> io::Result<()> {
+fn print_summary_account(out: &mut io::Write, account: &Account) -> io::Result<Summary> {
     writeln!(out, "{}", underline("Summary:"))?;
     writeln!(out)?;
 
     let income = account.sum(|t| t.amount > 0.0);
     let expenses = account.sum(|t| t.amount < 0.0).abs();
-    let profit = income - expenses;
+    let summary = Summary { income, expenses };
 
-    print_summary(out, income, expenses, profit)
+    print_summary(out, &summary)?;
+    Ok(summary)
 }
 
-fn print_summary(out: &mut io::Write, income: f32, expenses: f32, profit: f32) -> io::Result<()> {
-    writeln!(out, "      Income: {:+.2}", income)?;
-    writeln!(out, "    Expenses: -{:.2}", expenses)?;
+fn print_summary(out: &mut io::Write, summary: &Summary) -> io::Result<()> {
+    writeln!(out, "      Income: {:+.2}", summary.income)?;
+    writeln!(out, "    Expenses: -{:.2}", summary.expenses)?;
     writeln!(
         out,
         "      {}",
-        underline(format!("Profit: {:+.2}", profit))
+        underline(format!("Profit: {:+.2}", summary.profit()))
     )
 }
 
@@ -143,10 +161,10 @@ fn print_months(out: &mut io::Write, account: &Account) -> io::Result<()> {
             expenses += t.amount.abs();
         }
 
-        let profit = income - expenses;
+        let summary = Summary { income, expenses };
 
         writeln!(out)?;
-        print_summary(out, income, expenses, profit)?;
+        print_summary(out, &summary)?;
     }
 
     Ok(())
@@ -161,7 +179,7 @@ mod tests {
     #[test]
     fn empty_file() {
         let mut output = vec![];
-        let res = expenses(&mut output, "./data/empty_transactions.txt".into());
+        let res = expenses(&mut output, vec!["./data/empty_transactions.txt".into()]);
         assert!(res.is_ok());
 
         let output = String::from_utf8(output).expect("Not UTF-8");
@@ -200,7 +218,7 @@ mod tests {
         let mut output = vec![];
         let res = expenses(
             &mut output,
-            "./data/nordea_one_month_one_account_transactions.txt".into(),
+            vec!["./data/nordea_one_month_one_account_transactions.txt".into()],
         );
         assert!(res.is_ok());
 
@@ -257,5 +275,91 @@ mod tests {
 
     // TODO: test incorrect transactions file
     // TODO: test multi month one account
-    // TODO: test multi month multi account
+
+    #[test]
+    fn one_month_two_accounts() {
+        let mut output = vec![];
+        let res = expenses(
+            &mut output,
+            vec![
+                "./data/nordea_one_month_one_account_transactions_simple.txt".into(),
+                "./data/nordea_one_month_one_account_transactions_simple_two.txt".into(),
+            ],
+        );
+        assert!(res.is_ok());
+
+        let output = String::from_utf8(output).expect("Not UTF-8");
+
+        let correct = vec![
+            "Reading file ./data/nordea_one_month_one_account_transactions_simple.txt",
+            "",
+            "",
+            "     Account: FI1234567890123456",
+            "Transactions: 3",
+            "      Period: 02.05.2018 - 24.05.2018",
+            "",
+            "",
+            "<u>Summary:</u>",
+            "",
+            "      Income: +0.00",
+            "    Expenses: -311.06",
+            "      <u>Profit: -311.06</u>",
+            "",
+            "",
+            "<u>Months:</u>",
+            "",
+            "    <b>05.2018:</b>",
+            "        24.05.2018: -300.00 (James Bond - Own transfer)",
+            "        02.05.2018: -8.46 (TWILIO - Card purchase USD          10,01 8778894546 KURSSI: 1,1832)",
+            "        02.05.2018: -2.60 (Iso Tiger Oy - Card purchase HELSINKI)",
+            "",
+            "      Income: +0.00",
+            "    Expenses: -311.06",
+            "      <u>Profit: -311.06</u>",
+            "",
+            "",
+            "<u>Recurrent payments:</u>",
+            "",
+            "Reading file ./data/nordea_one_month_one_account_transactions_simple_two.txt",
+            "",
+            "",
+            "     Account: FI9876543210123456",
+            "Transactions: 1",
+            "      Period: 24.05.2018 - 24.05.2018",
+            "",
+            "",
+            "<u>Summary:</u>",
+            "",
+            "      Income: +300.00",
+            "    Expenses: -0.00",
+            "      <u>Profit: +300.00</u>",
+            "",
+            "",
+            "<u>Months:</u>",
+            "",
+            "    <b>05.2018:</b>",
+            "        24.05.2018: +300.00 (James Bond -)",
+            "",
+            "",
+            "      Income: +300.00",
+            "    Expenses: -0.00",
+            "      <u>Profit: +300.00</u>",
+            "",
+            "",
+            "<u>Recurrent payments:</u>",
+            "",
+            "------------------------",
+            "<u>Summary across accounts:</u>",
+            "      Income: +300.00",
+            "    Expenses: -311.06",
+            "      <u>Profit: -11.06</u>",
+            "------------------------",
+        ];
+
+        assert_eq!(correct.len(), output.lines().count());
+
+        for (line, correct) in output.lines().zip(correct) {
+            assert_eq!(correct, line);
+        }
+    }
 }

@@ -1,0 +1,10 @@
+Account number	FI9876543210123456
+
+Entry date	Value date	Payment date	Amount	Beneficiary/Remitter	Account number	BIC	Transaction	Reference number	Originator's reference	Message	Card number	Receipt
+
+14.05.2018	14.05.2018	14.05.2018	+200,00	Employer			Deposit	123456789015		HELSINKI
+
+23.05.2018	23.05.2018	23.05.2018	-3,80	RTE Kahvilat Oy			Card purchase	123456789016		HELSINKI 	1234567890123450
+
+24.05.2018	24.05.2018		300,0	James Bond	FI9876543210123456					 			
+
